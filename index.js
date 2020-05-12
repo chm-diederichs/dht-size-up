@@ -17,8 +17,10 @@ function query (dht, n, find, pops = [], nodes, cb) {
 
   dht.query('_find_node', find)
     .on('data', function (data) {
-      nodes.add(data.node.id.toString('hex'))
-      distances.push(xorDistance(data.node.id, find))
+      if (data.node.id) {
+        nodes.add(data.node.id.toString('hex'))
+        distances.push(xorDistance(data.node.id, find))
+      }
     })
     .on('end', function () {
       pops.push(estimatePopulation(distances))
