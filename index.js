@@ -2,23 +2,27 @@ const sha256 = require('sha256-wasm')
 
 module.exports = query
 
-function query (dht, n, find, pops = [], cb) {
-  if (typeof n === 'function') return query(dht, 10000, null, [], n)
-  if (typeof find === 'function') return query(dht, n, null, [], find)
-  if (typeof pops === 'function') return query(dht, n, find, [], pops)
+function query (dht, n, find, pops = [], nodes, cb) {
+  if (typeof n === 'function') return query(dht, 20, null, [], null, n)
+  if (typeof find === 'function') return query(dht, n, null, [], null, find)
+  if (typeof pops === 'function') return query(dht, n, find, [], null, pops)
+  if (typeof set === 'function') return query(dht, n, find, [], null, set)
+
+  if (!nodes) nodes = new Set()
 
   if (!find) find = shasum(Date.now().toString(16))
 
-  if (n === 0) return cb(null, Math.round(avg(pops)))
+  if (n === 0) return cb(null, Math.round(avg(pops)), nodes.size, pops.length)
   var distances = []
 
   dht.query('_find_node', find)
     .on('data', function (data) {
+      nodes.add(data.node.id.toString('hex'))
       distances.push(xorDistance(data.node.id, find))
     })
     .on('end', function () {
       pops.push(estimatePopulation(distances))
-      return query(dht, n - 1, shasum(find), pops, cb)
+      return query(dht, n - 1, shasum(find), pops, nodes, cb)
     })
     .on('error', function (err) {
       return cb(err)
@@ -26,12 +30,14 @@ function query (dht, n, find, pops = [], cb) {
 }
 
 function estimatePopulation (arr) {
-  var sorted = arr.sort(Buffer.compare).slice(0, 20)
+  var len = Math.min(20, arr.length - 6)
+  var sorted = arr.sort(Buffer.compare).slice(0, len)
+
   const limit = BigInt('0x' + sorted.pop().toString('hex'))
 
   // BigInt only supports int division so use reciprocal
   const scaleBy = Number(2n ** 256n / limit)
-  var estimate =  20 * scaleBy
+  var estimate = len * scaleBy
 
   return estimate
 }
