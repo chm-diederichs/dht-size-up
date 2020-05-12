@@ -1,59 +1,43 @@
-const crypto = require('crypto')
-const dht = require('dht-rpc')
+const sha256 = require('sha256-wasm')
 
-var key = shasum(Date.now().toString(16))
+module.exports = query
 
-var bootstrap = dht({ ephemeral: true })
-bootstrap.listen(10001)
+function query (dht, n, find, pops = [], cb) {
+  if (typeof n === 'function') return query(dht, 10000, null, [], n)
+  if (typeof find === 'function') return query(dht, n, null, [], find)
+  if (typeof pops === 'function') return query(dht, n, find, [], pops)
 
-var pops = []
+  if (!find) find = shasum(Date.now().toString(16))
 
-createNodes(500)
-
-const nodes = []
-function createNodes (n) {
-  var node = dht({ bootstrap: [ 'localhost:10001' ] })
-
-  node.on('ready', function () {
-    nodes.push(node)
-    if (n === 0) return query(key, 1000)
-    return createNodes(--n)
-  })
-}
-
-function query (find, n) {
+  if (n === 0) return cb(null, Math.round(avg(pops)))
   var distances = []
 
-  if (n === 0) {
-    return console.log(avg(pops.map(Number)))
-  }
-
-  bootstrap.query('_find_node', find)
+  dht.query('_find_node', find)
     .on('data', function (data) {
       distances.push(xorDistance(data.node.id, find))
     })
     .on('end', function () {
-      pops.push(estimatePopulation(distances.sort(Buffer.compare).slice(0, 20)))
-      return query(shasum(find), n - 1)
+      pops.push(estimatePopulation(distances))
+      return query(dht, n - 1, shasum(find), pops, cb)
     })
     .on('error', function (err) {
-      console.log(this.table.unverified)
-      throw err
+      return cb(err)
     })
 }
 
 function estimatePopulation (arr) {
-  var sorted = arr.sort(Buffer.compare)
-  const furthest = BigInt('0x' + sorted.pop().toString('hex'))
+  var sorted = arr.sort(Buffer.compare).slice(0, 20)
+  const limit = BigInt('0x' + sorted.pop().toString('hex'))
 
-  const probability = Number(2n ** 256n / furthest)
-  var est1 =  BigInt(arr.length * probability)
+  // BigInt only supports int division so use reciprocal
+  const scaleBy = Number(2n ** 256n / limit)
+  var estimate =  20 * scaleBy
 
-  return est1
+  return estimate
 }
 
 function shasum (data) {
-  return crypto.createHash('sha256').update(data).digest()
+  return sha256().update(data).digest()
 }
 
 function xorDistance (a, b) {

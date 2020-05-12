@@ -1,0 +1,28 @@
+{
+  "name": "dht-size-up",
+  "version": "0.0.0",
+  "description": "Estimate the size of a DHT using find_node queries",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "author": "Christophe Diederichs",
+  "license": "MIT",
+  "dependencies": {
+    "sha256-wasm": "^1.2.3"
+  },
+  "devDependencies": {
+    "dht-rpc": "^4.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chm-diederichs/dht-size-up.git"
+  },
+  "keywords": [
+    "DHT"
+  ],
+  "bugs": {
+    "url": "https://github.com/chm-diederichs/dht-size-up/issues"
+  },
+  "homepage": "https://github.com/chm-diederichs/dht-size-up#readme"
+}
