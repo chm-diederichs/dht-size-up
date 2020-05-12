@@ -1,4 +1,4 @@
-# sodium-javascript
+# dht-size-up
 
 Estimate the size of a DHT using find_node queries.
 
