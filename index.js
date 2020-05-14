@@ -12,7 +12,12 @@ function query (dht, n, find, pops = [], nodes, cb) {
 
   if (!find) find = shasum(Date.now().toString(16))
 
-  if (n === 0) return cb(null, Math.round(avg(pops)), nodes.size, pops.length)
+  if (n === 0) {
+    var average = Math.round(avg(pops))
+    var result = Math.max(average, nodes.size)
+    return cb(null, result, nodes.size, pops.length)
+  }
+
   var distances = []
 
   dht.query('_find_node', find)
