@@ -50,7 +50,7 @@ function estimatePopulation (arr) {
 }
 
 function shasum (data) {
-  return sha256().update(data).digest()
+  return Buffer.from(sha256().update(data).digest())
 }
 
 function xorDistance (a, b) {

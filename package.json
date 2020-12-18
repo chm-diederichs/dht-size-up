@@ -9,7 +9,7 @@
   "author": "Christophe Diederichs",
   "license": "MIT",
   "dependencies": {
-    "sha256-wasm": "^1.2.3"
+    "sha256-wasm": "^2.1.2"
   },
   "devDependencies": {
     "dht-rpc": "^4.9.0"
