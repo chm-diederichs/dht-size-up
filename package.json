@@ -1,6 +1,6 @@
 {
   "name": "dht-size-up",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Estimate the size of a DHT using find_node queries",
   "main": "index.js",
   "scripts": {
