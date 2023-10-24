@@ -12,7 +12,7 @@
     "sha256-wasm": "^2.1.2"
   },
   "devDependencies": {
-    "dht-rpc": "^4.9.0"
+    "dht-rpc": "^6.9.1"
   },
   "repository": {
     "type": "git",

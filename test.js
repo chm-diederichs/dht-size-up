@@ -1,16 +1,22 @@
 const query = require('./')
-const sha256 = require('sha256-wasm')
-const dht = require('dht-rpc')
+const DHT = require('dht-rpc')
 
-var bootstrap = dht({ ephemeral: true })
-bootstrap.listen(10001)
+main()
 
-createNodes(1000)
+async function main () {
+  const bootstrap = new DHT({
+    ephemeral: true,
+    firewalled: false,
+    port: 10001
+  })
 
-function createNodes (n) {
-  dht({ bootstrap: ['localhost:10001'] })
-    .on('ready', function () {
-      if (n === 0) return query(bootstrap, console.log)
-      return createNodes(--n)
-    })
+  await bootstrap.ready()
+
+  const all = [bootstrap]
+  for (let i = 0; i < 1000; i++) {
+    all.push(new DHT({ bootstrap: ['localhost:10001'] }))
+  }
+
+  await Promise.all(all.map(n => n.ready()))
+  query(all[all.length - 1], console.log)
 }

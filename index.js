@@ -2,34 +2,41 @@ const sha256 = require('sha256-wasm')
 
 module.exports = query
 
-function query (dht, n, find, pops = [], nodes, cb) {
-  if (typeof n === 'function') return query(dht, 20, null, [], null, n)
-  if (typeof find === 'function') return query(dht, n, null, [], null, find)
-  if (typeof pops === 'function') return query(dht, n, find, [], null, pops)
-  if (typeof set === 'function') return query(dht, n, find, [], null, set)
+function query (dht, n, find, pops = [], nodes, ips = new Set(), cb) {
+  if (typeof n === 'function') return query(dht, 20, null, [], null, new Set(), n)
+  if (typeof find === 'function') return query(dht, n, null, [], null, new Set(), find)
+  if (typeof pops === 'function') return query(dht, n, find, [], null, new Set(), pops)
+  if (typeof nodes === 'function') return query(dht, n, find, pops, null, new Set(), nodes)
+  if (typeof ips === 'function') return query(dht, n, find, nodes, pops, new Set(), ips)
 
   if (!nodes) nodes = new Set()
 
   if (!find) find = shasum(Date.now().toString(16))
 
   if (n === 0) {
-    var average = Math.round(avg(pops))
-    var result = Math.max(average, nodes.size)
-    return cb(null, result, nodes.size, pops.length)
+    const average = Math.round(avg(pops))
+    const result = Math.max(average, nodes.size)
+    return cb(null, result, nodes.size, pops.length, [...ips])
   }
 
-  var distances = []
+  const distances = []
 
-  dht.query('_find_node', find)
+  dht.findNode(find)
     .on('data', function (data) {
-      if (data.node.id) {
-        nodes.add(data.node.id.toString('hex'))
-        distances.push(xorDistance(data.node.id, find))
+      if (data.from.host) ips.add(data.from.hot)
+      if (data.from.id) {
+        nodes.add(data.from.id.toString('hex'))
+        distances.push(xorDistance(data.from.id, find))
+      }
+      if (data.closerNodes) {
+        for (const n of data.closerNodes) {
+          ips.add(n.host)
+        }
       }
     })
     .on('end', function () {
-      pops.push(estimatePopulation(distances))
-      return query(dht, n - 1, shasum(find), pops, nodes, cb)
+      if (distances.length) pops.push(estimatePopulation(distances))
+      return query(dht, n - 1, shasum(find), pops, nodes, ips, cb)
     })
     .on('error', function (err) {
       return cb(err)
@@ -37,14 +44,14 @@ function query (dht, n, find, pops = [], nodes, cb) {
 }
 
 function estimatePopulation (arr) {
-  var len = Math.min(20, arr.length - 6)
-  var sorted = arr.sort(Buffer.compare).slice(0, len)
+  const len = Math.min(20, arr.length - 6)
+  const sorted = arr.sort(Buffer.compare).slice(0, len)
 
   const limit = BigInt('0x' + sorted.pop().toString('hex'))
 
   // BigInt only supports int division so use reciprocal
   const scaleBy = Number(2n ** 256n / limit)
-  var estimate = len * scaleBy
+  const estimate = len * scaleBy
 
   return estimate
 }
@@ -58,11 +65,11 @@ function xorDistance (a, b) {
 }
 
 function bufferXor (a, b) {
-  var short = Buffer.alloc(32, a)
-  var long = Buffer.alloc(32, b)
+  let short = Buffer.alloc(32, a)
+  let long = Buffer.alloc(32, b)
 
   if (short.byteLength > long.byteLength) {
-    var tmp = short
+    const tmp = short
     short = long
     long = tmp
   }
@@ -75,5 +82,6 @@ function bufferXor (a, b) {
 }
 
 function avg (arr) {
+  if (!arr.length) return 0
   return arr.reduce((acc, a) => acc + a) / arr.length
 }
